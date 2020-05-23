@@ -1,5 +1,5 @@
 import numpy as np
-from tools2 import *
+from lab2_tools import *
 
 def concatTwoHMMs(hmm1, hmm2):
     """ Concatenates 2 HMM models
@@ -29,6 +29,33 @@ def concatTwoHMMs(hmm1, hmm2):
 
     See also: the concatenating_hmms.pdf document in the lab package
     """
+    M1, D = hmm1['means'].shape
+    M2 = hmm2['means'].shape[0]
+    K = M1+M2
+    new_startprob = np.zeros(K+1)
+    new_transmat = np.zeros((K+1, K+1))
+    new_means = np.zeros((K, D))
+    new_covars = np.zeros((K, D))
+    # new prior
+    new_startprob[:M1] = hmm1['startprob'][:M1]
+    new_startprob[-(M2+1):] = hmm1['startprob'][-1] * hmm2['startprob']
+    # new transition matrix
+    new_transmat[:M1,:M1] = hmm1['transmat'][:M1, :M1]
+    for i in range(M1, K+1):
+        new_transmat[:M1, i] = hmm1['transmat'][:M1][:,-1] * hmm2['startprob'][i-M1]
+    new_transmat[-(M2+1):,-(M2+1):] = hmm2['transmat']
+    new_means[:M1] = hmm1['means']
+    new_means[-M2:] = hmm2['means']
+    new_covars[:M1] = hmm1['covars']
+    new_covars[-M2:] = hmm2['covars']
+    new_hmm = {
+        'name':'+'.join([hmm1['name'], hmm2['name']]),
+        'startprob':new_startprob,
+        'transmat':new_transmat,
+        'means':new_means,
+        'covars':new_covars
+    }
+    return new_hmm
 
 # this is already implemented, but based on concat2HMMs() above
 def concatHMMs(hmmmodels, namelist):
@@ -91,6 +118,13 @@ def forward(log_emlik, log_startprob, log_transmat):
     Output:
         forward_prob: NxM array of forward log probabilities for each of the M states in the model
     """
+    N, M = log_emlik.shape
+    forward_prob = np.zeros_like(log_emlik)
+    forward_prob[0,:] = log_startprob[:-1] + log_emlik[0,:]
+    for i in range(1, N):
+        for j in range(M):
+            forward_prob[i,j] = logsumexp(forward_prob[i-1]+log_transmat[:-1,j]) + log_emlik[i,j]
+    return forward_prob
 
 def backward(log_emlik, log_startprob, log_transmat):
     """Backward (beta) probabilities in log domain.
