@@ -126,6 +126,7 @@ def forward(log_emlik, log_startprob, log_transmat):
             forward_prob[i,j] = logsumexp(forward_prob[i-1]+log_transmat[:-1,j]) + log_emlik[i,j]
     return forward_prob
 
+
 def backward(log_emlik, log_startprob, log_transmat):
     """Backward (beta) probabilities in log domain.
 
@@ -137,6 +138,14 @@ def backward(log_emlik, log_startprob, log_transmat):
     Output:
         backward_prob: NxM array of backward log probabilities for each of the M states in the model
     """
+    N, M = log_emlik.shape
+    print(N,M)
+    backward_prob = np.zeros_like(log_emlik)
+    for i in range(N-2, -1 ,-1):
+        for j in range(M):
+            backward_prob[i, j] = logsumexp(backward_prob[i+1,:]+log_emlik[i+1,:]+log_transmat[j,:-1])
+    return backward_prob
+
 
 def viterbi(log_emlik, log_startprob, log_transmat, forceFinalState=True):
     """Viterbi path.
@@ -152,6 +161,20 @@ def viterbi(log_emlik, log_startprob, log_transmat, forceFinalState=True):
         viterbi_loglik: log likelihood of the best path
         viterbi_path: best path
     """
+    N, M = log_emlik.shape
+    forward_prob = np.zeros_like(log_emlik)
+    viterbi_path = np.zeros(N, dtype='int')
+    forward_prob[0,:] = log_startprob[:-1] + log_emlik[0,:]
+    state_record = np.zeros_like(log_emlik)
+    for i in range(1, N):
+        for j in range(M):
+            bn = forward_prob[i-1]+log_transmat[:-1,j]
+            forward_prob[i,j] = np.max(bn) + log_emlik[i,j]
+            state_record[i,j] = np.argmax(bn)
+    viterbi_path[-1] = np.argmax(forward_prob[-1,:])
+    for i in range(2, N+1):
+        viterbi_path[-i] = state_record[-(i-1),viterbi_path[-(i-1)]]
+    return np.max(forward_prob[-1,:]), viterbi_path
 
 def statePosteriors(log_alpha, log_beta):
     """State posterior (gamma) probabilities in log domain.
@@ -164,6 +187,11 @@ def statePosteriors(log_alpha, log_beta):
     Output:
         log_gamma: NxM array of gamma probabilities for each of the M states in the model
     """
+    N, M = log_alpha.shape
+    log_gamma = np.zeros_like(log_alpha)
+    for i in range(N):
+        log_gamma[i] = log_alpha[i,:] + log_beta[i,:] - logsumexp(log_alpha[-1])
+    return log_gamma
 
 def updateMeanAndVar(X, log_gamma, varianceFloor=5.0):
     """ Update Gaussian parameters with diagonal covariance
