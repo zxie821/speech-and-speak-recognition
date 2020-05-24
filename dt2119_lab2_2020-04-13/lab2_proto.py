@@ -139,7 +139,6 @@ def backward(log_emlik, log_startprob, log_transmat):
         backward_prob: NxM array of backward log probabilities for each of the M states in the model
     """
     N, M = log_emlik.shape
-    print(N,M)
     backward_prob = np.zeros_like(log_emlik)
     for i in range(N-2, -1 ,-1):
         for j in range(M):
@@ -189,8 +188,9 @@ def statePosteriors(log_alpha, log_beta):
     """
     N, M = log_alpha.shape
     log_gamma = np.zeros_like(log_alpha)
+    denom = logsumexp(log_alpha[-1])
     for i in range(N):
-        log_gamma[i] = log_alpha[i,:] + log_beta[i,:] - logsumexp(log_alpha[-1])
+        log_gamma[i] = log_alpha[i,:] + log_beta[i,:] - denom
     return log_gamma
 
 def updateMeanAndVar(X, log_gamma, varianceFloor=5.0):
@@ -208,3 +208,18 @@ def updateMeanAndVar(X, log_gamma, varianceFloor=5.0):
          means: MxD mean vectors for each state
          covars: MxD covariance (variance) vectors for each state
     """
+    M = log_gamma.shape[1]
+    D = X.shape[1]
+
+    means = np.zeros((M,D))
+    covars = np.zeros((M,D))
+
+    normFactor = np.exp(logsumexp(log_gamma))[:,np.newaxis]
+
+    means = np.dot(np.exp(log_gamma).T,X)/normFactor
+    for i in range(M):
+        covars[i] = np.dot(np.exp(log_gamma[:,i]), np.power(X-means[i], 2))
+
+    covars /= normFactor
+    covars[covars<varianceFloor] = varianceFloor
+    return means,covars
