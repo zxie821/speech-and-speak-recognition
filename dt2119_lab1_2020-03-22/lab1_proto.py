@@ -232,7 +232,7 @@ def cepstrum(input, nceps):
         array of Cepstral coefficients [N x nceps]
     Note: you can use the function dct from scipy.fftpack.realtransforms
     """
-    return dct(input, norm='ortho')[:,:nceps]
+    return dct(input)[:,:nceps]
 
 def dtw(x, y, dist):
     """Dynamic Time Warping.
@@ -264,4 +264,4 @@ def dtw(x, y, dist):
             accumulated_dist[i, j] = min_dp + dist(x[i], y[j])
     global_distance = accumulated_dist[-1, -1] /(M+ N)
     return global_distance, _, accumulated_dist,_
-#test_mfcc()
+test_mfcc()
