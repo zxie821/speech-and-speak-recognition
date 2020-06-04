@@ -39,8 +39,10 @@ def precompute_fe_and_fa():
    phoneHMMs = np.load('lab2_models_all.npz', allow_pickle=True)['phoneHMMs'].item()
    phones = sorted(phoneHMMs.keys())
    nstates = {phone: phoneHMMs[phone]['means'].shape[0] for phone in phones}
+   stateList = [ph + '_' + str(id) for ph in phones for id in range(nstates[ph])]
    np.save('nstate.npy', nstates)
-   
+   np.save('stateList.npy', stateList)
+
    base_path = '../data/tidigits/'
    train_path = os.path.join(base_path, 'disc_4.1.1', 'tidigits', 'train')
    train_set = preprocessing(train_path, nstates, phoneHMMs)
