@@ -58,4 +58,24 @@ def frames2trans(sequence, outfilename=None, timestep=0.01):
             f.write(trans)
     return trans
 
-        
+
+def merge_state2phoneme(states):
+    current_state = ''
+    new_states = []
+    for s in states:
+        ph = s[:-2]
+        if ph!=current_state:
+            current_state = ph
+            new_states.append(ph)
+    return new_states
+
+traindata = np.load("traindata.npz", allow_pickle=True)['arr_0']
+phs = traindata[0]['targets']
+print(phs)
+print(traindata[0]['filename'])
+for td in traindata:
+    if '../data/tidigits/disc_4.1.1/tidigits/train/man/nw/z43a.wav' == td['filename']:
+        print('found:',td['filename'])
+        frames2trans(td['targets'], 'oa_z43a.lab')
+        print(td['targets'])
+frames2trans(phs, 'oa.lab')
